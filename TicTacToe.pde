@@ -1,101 +1,125 @@
+// This code is far too clever, but it works, so I'm not going to mess with it.
+
 final int FULL = 511;
-int[] used = new int[9];
-int[] os = new int[9];
-int active = FULL;
-int oturn = 1;
-int i,j,u,v,w,z;
-int won = 0;
-int owon = 0;
+int[] used = new int[9]; // getbit(used[z], w) is true if board z space w is occupied
+int[] os = new int[9]; // getbit(used[z], w) is true if board z space w contains an O
+int active = FULL; // getbit(active, z) is true if board z is active
+boolean oturn = true; // oturn is true if it is O's turn
+int won = 0;  // getbit(won, z) is true if somebody has won on board z
+int owon = 0; // getbit(owon, z) is true if O has won on board z
+
+// 3x3 indexing:
+//
+// 0 | 1 | 2
+// 3 | 4 | 5
+// 6 | 7 | 8
 
 void setup() {
-  size(270,270);
-  textFont(loadFont("TimesNewRomanPSMT-48.vlw"),24);
+  size(270, 270);
+  textFont(loadFont("TimesNewRomanPSMT-48.vlw"), 24);
 }
 
 void draw() {
-  for(z=0;z<9;z++) {
-    i = z%3;
-    j = z/3;
-    for(w=0;w<9;w++) {
-      u = w%3;
-      v = w/3;
-      if(getbit(owon,z)==1) {
-        fill(0,0,128+getbit(active,z)*64);
-      }else if(getbit(won,z)==1) {
-        fill(128+getbit(active,z)*64,0,0);
-      }else{
-        fill(128+getbit(active,z)*127);
+  // z is a 3x3 index of boards
+  for (int z = 0; z < 9; z++) {
+    // board z is at coordinates (i, j)
+    int i = z % 3;
+    int j = z / 3;
+    // w is a 3x3 index of spaces
+    for (int w = 0; w < 9; w++) {
+      // space w is at coordinates (u, v)
+      int u = w % 3;
+      int v = w / 3;
+      if (getbit(owon, z)) {
+        // color blue
+        fill(0, 0, 128 + (getbit(active, z) ? 64 : 0));
+      } else if (getbit(won, z)) {
+        // color red
+        fill(128 + (getbit(active, z) ? 64 : 0), 0, 0);
+      } else {
+        // color white
+        fill(128 + (getbit(active, z) ? 127 : 0));
       }
-      stroke(0,0,0);
-      rect(i*90+u*30,j*90+v*30,i*90+(u+1)*30,j*90+(v+1)*30);
+      // draw space
+      stroke(0, 0, 0);
+      rect(i*90+u*30, j*90+v*30, i*90+(u+1)*30, j*90+(v+1)*30);
       noStroke();
-      fill(getbit(used[z]^os[z],w)*255,0,getbit(used[z]&os[z],w)*255);
-      if(getbit(used[z],w)==1) {
+      fill(getbit(used[z] ^ os[z], w) ? 255 : 0, 0, getbit(used[z] & os[z], w) ? 255 : 0);
+      if(getbit(used[z], w)) {
+        // draw character
         textAlign(CENTER);
-        text(getbit(os[z],w)==1?"O":"X",i*90+u*30+15,j*90+v*30+25);
+        text(getbit(os[z], w) ? "O" : "X", i*90 + u*30 + 15, j*90 + v*30 + 25);
       }
     }
     noFill();
-    stroke(0,0,0);
+    stroke(0, 0, 0);
     strokeWeight(4);
-    rect(i*90,j*90,(i+1)*90,(j+1)*90);
+    rect(i*90, j*90, (i+1)*90, (j+1)*90);
     strokeWeight(1);
   }
-  if(active==0) {
-    fill(0,0,0,128);
-    rect(0,0,270,270);
-    fill((1-oturn)*255,0,oturn*255);
-    text(oturn==1?"O's win!":"X's win!",135,135);
+  if (active == 0) {
+    fill(0, 0, 0, 128);
+    rect(0, 0, 270, 270);
+    fill(oturn ? 0 : 255, 0, oturn ? 255 : 0);
+    text(oturn ? "O's win!" : "X's win!", 135, 135);
   }
 }
 
-int getbit(int bits,int bit) {
-  return (bits&(1<<bit))>>bit;
+boolean getbit(int bits,int n) {
+  // return true if nth bit of bits is set
+  return (bits & (1 << n)) > 0;
 }
 
 void mousePressed() {
-  i = mouseX/90;
-  j = mouseY/90;
-  z = i+j*3;
+  // calculate board clicked
+  int i = mouseX / 90;
+  int j = mouseY / 90;
+  int z = i + j*3;
   
-  u = (mouseX-i*90)/30;
-  v = (mouseY-j*90)/30;
-  w = u+v*3;
+  // calculate space clicked
+  int u = (mouseX - i*90) / 30;
+  int v = (mouseY - j*90) / 30;
+  int w = u + v*3;
   
-  if(getbit(active,z)==1 && getbit(used[z],w)==0) {
-    used[z] |= (1<<w);
-    os[z] |= (oturn<<w);
-    if(getbit(won,z)==0 && wins(used[z],os[z],w)) {
-      won |= (1<<z);
-      owon |= (oturn<<z);
-      if(wins(won,owon,z))
+  if (getbit(active, z) && !getbit(used[z], w)) { // move is valid
+    // update board
+    used[z] |= (1 << w);
+    if (oturn)
+      os[z] |= (1 << w);
+    if (!getbit(won, z) && wins(used[z], os[z], w)) { // move results in a win
+      won |= (1 << z);
+      if (oturn)
+        owon |= (1 << z);
+      if(wins(won, owon, z))
         active = 0;
     }
-    if(active > 0) {
-      active = 1<<w;
-      oturn = 1-oturn;
+    if (active > 0) {
+      active = 1 << w;
+      oturn = !oturn;
     }
-    if(used[w]==FULL && active!=0)
+    if (used[w] == FULL && active != 0)
       active = FULL;
   }
 }
 
 boolean wins(int usedn,int osn,int m) {
-  if(getbit(usedn,(m+3)%9)==1 && getbit(osn,(m+3)%9)==getbit(osn,m) &&
-     getbit(usedn,(m+6)%9)==1 && getbit(osn,(m+6)%9)==getbit(osn,m))
+  boolean olast = getbit(osn, m); // true if O made last move
+  // returns true if the letter added at space m results in a win
+  if(getbit(usedn, (m+3)%9) && getbit(osn, (m+3)%9) == olast &&
+     getbit(usedn, (m+6)%9) && getbit(osn, (m+6)%9) == olast)
     return true; // vertical win
-  if(getbit(usedn,(m/3)*3)==1 && getbit(osn,(m/3)*3)==getbit(osn,m) &&
-     getbit(usedn,(m/3)*3+1)==1 && getbit(osn,(m/3)*3+1)==getbit(osn,m) &&
-     getbit(usedn,(m/3)*3+2)==1 && getbit(osn,(m/3)*3+2)==getbit(osn,m))
+  if(getbit(usedn, (m/3)*3)   && getbit(osn, (m/3)*3)   == olast &&
+     getbit(usedn, (m/3)*3+1) && getbit(osn, (m/3)*3+1) == olast &&
+     getbit(usedn, (m/3)*3+2) && getbit(osn, (m/3)*3+2) == olast)
     return true; // horizontal win
-  if(m%2==0) {
-    if(getbit(usedn,0)==1 && getbit(osn,0)==getbit(osn,m) &&
-       getbit(usedn,4)==1 && getbit(osn,4)==getbit(osn,m) &&
-       getbit(usedn,8)==1 && getbit(osn,8)==getbit(osn,m))
+  if(m%2 == 0) {
+    if(getbit(usedn, 0) && getbit(osn, 0) == olast &&
+       getbit(usedn, 4) && getbit(osn, 4) == olast &&
+       getbit(usedn, 8) && getbit(osn, 8) == olast)
       return true; // left diagonal win
-    if(getbit(usedn,2)==1 && getbit(osn,2)==getbit(osn,m) &&
-       getbit(usedn,4)==1 && getbit(osn,4)==getbit(osn,m) &&
-       getbit(usedn,6)==1 && getbit(osn,6)==getbit(osn,m))
+    if(getbit(usedn, 2) && getbit(osn, 2) == olast &&
+       getbit(usedn, 4) && getbit(osn, 4) == olast &&
+       getbit(usedn, 6) && getbit(osn, 6) == olast)
       return true; // right diagonal win
   }
   return false;
