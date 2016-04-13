@@ -1,3 +1,3 @@
 enum Value {
-  UNKNOWN, EMPTY, X, O;
+  EMPTY, X, O;
 }

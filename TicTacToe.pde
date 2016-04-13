@@ -83,11 +83,6 @@ void draw() {
   }
 }
 
-boolean getbit(int bits,int n) {
-  // return true if nth bit of bits is set
-  return (bits & (1 << n)) > 0;
-}
-
 void mousePressed() {
   Space board = new Space(mouseX / (3 * side), mouseY / (3 * side));
   Space space = new Space(mouseX % (3 * side) / side, mouseY % (3 * side) / side);
